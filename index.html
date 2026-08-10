@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOURNAMENT.IFA — Tekken 8 Tournament Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --void:#0a0908;
+  --panel:#161210;
+  --panel-raised:#1e1815;
+  --steel:#3a322a;
+  --steel-soft:#241e19;
+  --blood:#c8102e;
+  --blood-dark:#7d0c20;
+  --ember:#ff6a2b;
+  --ember-soft:#ff8a4c;
+  --devil:#8b5cf6;
+  --gold:#e8b84b;
+  --bone:#f1e9dc;
+  --ash:#9c9186;
+  --ash-dim:#655c53;
+  --font-display:'Anton',sans-serif;
+  --font-body:'Barlow',sans-serif;
+  --font-cond:'Barlow Condensed',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--void);
+  color:var(--bone);
+  font-family:var(--font-body);
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -5%, rgba(200,16,46,.18), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 105% 10%, rgba(139,92,246,.10), transparent 60%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, transparent 1px, transparent 40px);
+}
+a{color:inherit;}
+button{font-family:inherit;}
+::selection{background:var(--blood); color:var(--bone);}
+#app{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column;}
+.eyebrow{font-family:var(--font-cond); text-transform:uppercase; letter-spacing:.18em; font-size:12px; color:var(--ember-soft); font-weight:600;}
+h1,h2,h3{font-family:var(--font-display); font-weight:400; letter-spacing:.01em; margin:0; text-transform:uppercase;}
+p{line-height:1.55; color:var(--ash); margin:0;}
+
+/* ---------- nav ---------- */
+.nav{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 28px; backdrop-filter:blur(10px);
+  background:rgba(10,9,8,.78); border-bottom:1px solid var(--steel-soft);
+}
+.brand{display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;}
+.brand-mark{
+  width:34px; height:34px; display:grid; place-items:center;
+  background:linear-gradient(145deg,var(--blood),var(--blood-dark));
+  clip-path:polygon(20% 0,100% 0,100% 80%,80% 100%,0 100%,0 20%);
+  font-family:var(--font-display); font-size:16px; color:var(--bone);
+}
+.brand-text{font-family:var(--font-display); font-size:19px; letter-spacing:.06em;}
+.brand-text span{color:var(--ember);}
+.nav-right{display:flex; align-items:center; gap:10px;}
+.nav-user{font-family:var(--font-cond); font-size:14px; color:var(--ash); display:flex; align-items:center; gap:10px;}
+.nav-user b{color:var(--bone); font-weight:600;}
+
+/* ---------- buttons ---------- */
+.btn{
+  font-family:var(--font-cond); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  font-size:13.5px; padding:10px 18px; border:1px solid var(--steel); background:transparent; color:var(--bone);
+  cursor:pointer; clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  transition:transform .12s ease, border-color .15s ease, background .15s ease; white-space:nowrap;
+}
+.btn:hover{border-color:var(--ember); transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:linear-gradient(135deg,var(--blood),var(--blood-dark)); border-color:var(--blood);}
+.btn-primary:hover{border-color:var(--ember); box-shadow:0 0 22px -6px rgba(200,16,46,.7);}
+.btn-ghost{border-color:transparent; color:var(--ash);}
+.btn-ghost:hover{color:var(--bone); border-color:var(--steel);}
+.btn-sm{padding:7px 12px; font-size:12px;}
+.btn-danger{border-color:var(--devil); color:var(--devil);}
+.btn-danger:hover{background:rgba(139,92,246,.12);}
+.btn:disabled{opacity:.35; cursor:not-allowed; transform:none;}
+.btn-block{width:100%; text-align:center;}
+
+/* ---------- layout helpers ---------- */
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px; width:100%;}
+.main{flex:1; padding-bottom:80px;}
+.section-title{display:flex; align-items:baseline; gap:14px; margin:44px 0 20px;}
+.section-title h2{font-size:26px;}
+.section-title .count{font-family:var(--font-mono); color:var(--ash-dim); font-size:13px;}
+
+/* ---------- hero ---------- */
+.hero{position:relative; padding:86px 28px 56px; overflow:hidden; border-bottom:1px solid var(--steel-soft);}
+.hero-inner{max-width:1180px; margin:0 auto; position:relative; z-index:2;}
+.hero h1{font-size:clamp(44px,8vw,92px); line-height:.92; margin:10px 0 16px;}
+.hero h1 .accent{color:var(--blood); text-shadow:0 0 40px rgba(200,16,46,.55);}
+.hero p.lead{max-width:520px; font-size:16px; margin-bottom:26px;}
+.hero-actions{display:flex; gap:12px; flex-wrap:wrap;}
+.crack-svg{position:absolute; top:0; right:-4%; height:100%; width:60%; opacity:.5; z-index:1; pointer-events:none;}
+.ember-field{position:absolute; inset:0; z-index:1; pointer-events:none;}
+.ember-dot{position:absolute; bottom:-10px; width:3px; height:3px; border-radius:50%; background:var(--ember); opacity:0; animation:rise 7s linear infinite;}
+@keyframes rise{
+  0%{opacity:0; transform:translateY(0) translateX(0);}
+  10%{opacity:.9;}
+  90%{opacity:.5;}
+  100%{opacity:0; transform:translateY(-380px) translateX(24px);}
+}
+@media (prefers-reduced-motion:reduce){.ember-dot{animation:none; display:none;}}
+
+/* ---------- cards ---------- */
+.cut-card{
+  background:linear-gradient(155deg,var(--panel-raised),var(--panel));
+  border:1px solid var(--steel-soft);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  padding:20px;
+}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;}
+.t-card{cursor:pointer; display:flex; flex-direction:column; gap:12px; transition:border-color .15s ease, transform .15s ease;}
+.t-card:hover{border-color:var(--ember); transform:translateY(-2px);}
+.t-card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.t-card h3{font-size:19px; line-height:1.05;}
+.t-meta{font-family:var(--font-cond); font-size:13px; color:var(--ash); display:flex; gap:14px; flex-wrap:wrap;}
+.t-meta b{color:var(--bone);}
+
+.pill{font-family:var(--font-cond); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:2px; white-space:nowrap;}
+.pill-reg{background:rgba(255,106,43,.15); color:var(--ember-soft); border:1px solid rgba(255,106,43,.4);}
+.pill-live{background:rgba(200,16,46,.18); color:#ff5470; border:1px solid rgba(200,16,46,.5); position:relative;}
+.pill-live::before{content:'●'; margin-right:5px; animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.25;}}
+.pill-done{background:rgba(232,184,75,.13); color:var(--gold); border:1px solid rgba(232,184,75,.4);}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:16px;}
+.field label{display:block; font-family:var(--font-cond); font-size:12.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ash); margin-bottom:7px; font-weight:600;}
+.input,.select,textarea{
+  width:100%; background:var(--void); border:1px solid var(--steel); color:var(--bone);
+  padding:11px 13px; font-family:var(--font-body); font-size:14.5px; outline:none;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+.input:focus,.select:focus,textarea:focus{border-color:var(--ember);}
+textarea{resize:vertical; min-height:70px;}
+.hint{font-size:12px; color:var(--ash-dim); margin-top:6px;}
+.error-box{background:rgba(200,16,46,.12); border:1px solid var(--blood); color:#ff8f9d; padding:10px 13px; font-size:13.5px; margin-bottom:14px;}
+.radio-row{display:flex; gap:10px; flex-wrap:wrap;}
+.radio-opt{flex:1; min-width:140px; border:1px solid var(--steel); padding:12px; cursor:pointer; clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
+.radio-opt.active{border-color:var(--blood); background:rgba(200,16,46,.1);}
+.radio-opt b{display:block; font-family:var(--font-cond); font-size:14px;}
+.radio-opt span{font-size:12px; color:var(--ash-dim);}
+
+/* ---------- modal ---------- */
+.modal-backdrop{position:fixed; inset:0; background:rgba(6,5,4,.75); backdrop-filter:blur(3px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px;}
+.modal{width:100%; max-width:420px; padding:26px;}
+.modal h3{font-size:22px; margin-bottom:18px;}
+.modal-close{position:absolute; top:14px; right:16px; cursor:pointer; color:var(--ash); font-size:20px; background:none; border:none;}
+
+/* ---------- toast ---------- */
+#toast-root{position:fixed; bottom:22px; right:22px; z-index:200; display:flex; flex-direction:column; gap:10px;}
+.toast{padding:12px 18px; font-family:var(--font-cond); font-size:14px; font-weight:600; border-left:3px solid var(--ember); background:var(--panel-raised); box-shadow:0 8px 24px rgba(0,0,0,.4); animation:slidein .2s ease;}
+.toast.err{border-color:var(--blood);}
+@keyframes slidein{from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);}}
+
+/* ---------- tournament detail ---------- */
+.t-header{padding:36px 0 24px; border-bottom:1px solid var(--steel-soft); margin-bottom:28px;}
+.t-header-top{display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap;}
+.t-header h1{font-size:clamp(30px,5vw,50px);}
+.t-stats{display:flex; gap:26px; margin-top:16px; flex-wrap:wrap;}
+.t-stat b{display:block; font-family:var(--font-mono); font-size:20px; color:var(--bone);}
+.t-stat span{font-family:var(--font-cond); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ash-dim);}
+.tabs{display:flex; gap:6px; margin-bottom:24px; border-bottom:1px solid var(--steel-soft);}
+.tab{padding:10px 16px; font-family:var(--font-cond); font-weight:600; letter-spacing:.03em; text-transform:uppercase; font-size:13px; color:var(--ash); cursor:pointer; border-bottom:2px solid transparent;}
+.tab.active{color:var(--bone); border-color:var(--blood);}
+
+.plist{display:flex; flex-direction:column; gap:8px;}
+.prow{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--steel-soft);}
+.prow .seed{font-family:var(--font-mono); color:var(--ash-dim); width:28px; display:inline-block;}
+.prow b{font-weight:600;}
+
+/* ---------- bracket ---------- */
+.bracket-block{margin-bottom:36px;}
+.bracket-block h3{font-size:16px; letter-spacing:.05em; color:var(--ember-soft); margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+.bracket-block h3::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--steel),transparent);}
+.bracket-row{display:flex; gap:34px; overflow-x:auto; padding-bottom:16px;}
+.round-col{display:flex; flex-direction:column; justify-content:space-around; gap:14px; min-width:220px; position:relative;}
+.round-label{font-family:var(--font-cond); font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--ash-dim); margin-bottom:6px; text-align:center;}
+.match-card{
+  background:var(--panel); border:1px solid var(--steel-soft); padding:10px 12px;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  font-family:var(--font-cond); position:relative;
+}
+.match-card.ready{border-color:var(--ember); cursor:pointer;}
+.match-card.ready:hover{box-shadow:0 0 0 1px var(--ember), 0 0 18px -4px rgba(255,106,43,.5);}
+.match-card.done{border-color:var(--steel);}
+.mp{display:flex; justify-content:space-between; align-items:center; padding:5px 2px; font-size:14px;}
+.mp.winner{color:var(--gold); font-weight:700;}
+.mp.loser{color:var(--ash-dim);}
+.mp .score{font-family:var(--font-mono); font-size:13px;}
+.mp-divider{height:1px; background:var(--steel-soft); margin:2px 0;}
+.match-tag{position:absolute; top:-9px; left:10px; font-size:9px; background:var(--void); padding:0 6px; color:var(--ash-dim); letter-spacing:.08em;}
+.bye-tag{color:var(--ash-dim); font-style:italic; font-size:12px; text-align:center; padding:4px;}
+
+.rr-table{width:100%; border-collapse:collapse; font-family:var(--font-cond);}
+.rr-table th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ash-dim); padding:8px 10px; border-bottom:1px solid var(--steel);}
+.rr-table td{padding:9px 10px; border-bottom:1px solid var(--steel-soft); font-size:14.5px;}
+.rr-table tr:first-child td{color:var(--gold); font-weight:700;}
+.rr-sched-round{margin-bottom:16px;}
+.rr-sched-round h4{font-family:var(--font-cond); font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ash-dim); margin:0 0 8px;}
+
+.champion-banner{
+  display:flex; align-items:center; gap:16px; padding:22px 26px; margin-bottom:26px;
+  background:linear-gradient(120deg, rgba(232,184,75,.14), rgba(200,16,46,.08));
+  border:1px solid var(--gold); clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+}
+.champion-banner .trophy{font-size:34px;}
+.champion-banner .eyebrow{color:var(--gold);}
+.champion-banner h2{font-size:28px;}
+
+.empty{text-align:center; padding:60px 20px; color:var(--ash-dim);}
+.empty h3{color:var(--ash); font-size:20px; margin-bottom:8px;}
+
+.footer{padding:26px 28px; text-align:center; color:var(--ash-dim); font-size:12.5px; border-top:1px solid var(--steel-soft); font-family:var(--font-cond);}
+
+@media (max-width:640px){
+  .nav{padding:12px 16px;} .wrap{padding:0 16px;} .hero{padding:60px 16px 40px;}
+  .t-stats{gap:16px;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast-root"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   BRACKET ENGINE
+========================================================= */
+const BYE = 'BYE';
+
+function nextPow2(n){ let p=1; while(p<n) p*=2; return p; }
+
+function seedOrder(n){
+  let seeds=[1,2];
+  const rounds=Math.log2(n);
+  for(let r=1;r<rounds;r++){
+    const sum=Math.pow(2,r+1)+1;
+    const next=[];
+    for(const s of seeds){ next.push(s, sum-s); }
+    seeds=next;
+  }
+  return seeds;
+}
+
+function generateSingleElim(participants){
+  const n=nextPow2(Math.max(participants.length,2));
+  const order=seedOrder(n);
+  const seedToPlayer=(seed)=> participants[seed-1] || BYE;
+  const rounds=Math.log2(n);
+  const matches={};
+  const roundList=[];
+  const r1=[];
+  for(let i=0;i<n/2;i++){
+    const seedA=order[i*2], seedB=order[i*2+1];
+    const id=`WB-R1-M${i}`;
+    matches[id]={id,stage:'WB',round:1,index:i,
+      slotA:{type:'seed',seed:seedA}, slotB:{type:'seed',seed:seedB},
+      playerA:seedToPlayer(seedA), playerB:seedToPlayer(seedB),
+      scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+    r1.push(id);
+  }
+  roundList.push(r1);
+  for(let r=2;r<=rounds;r++){
+    const prev=roundList[r-2]; const cur=[];
+    for(let i=0;i<prev.length/2;i++){
+      const id=`WB-R${r}-M${i}`;
+      matches[id]={id,stage:'WB',round:r,index:i,
+        slotA:{type:'winner',match:prev[i*2]}, slotB:{type:'winner',match:prev[i*2+1]},
+        playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+      cur.push(id);
+    }
+    roundList.push(cur);
+  }
+  resolveByesAndSlots(matches);
+  return {type:'single', size:n, rounds, matches, wbRounds:roundList, final:roundList[roundList.length-1][0]};
+}
+
+function generateDoubleElim(participants){
+  const n=nextPow2(Math.max(participants.length,2));
+  const k=Math.log2(n);
+  const single=generateSingleElim(participants);
+  const matches=single.matches;
+  const wbRounds=single.wbRounds;
+  if(k===1){
+    return {type:'double', size:n, k, matches, wbRounds, lbRounds:[], gf1:wbRounds[0][0], gf2:null, trivial:true};
+  }
+  const lbRoundIds=[];
+  const totalLBRounds=2*(k-1);
+  for(let t=1;t<=totalLBRounds;t++){
+    const cur=[];
+    if(t===1){
+      const w1=wbRounds[0];
+      for(let i=0;i<w1.length/2;i++){
+        const id=`LB-R1-M${i}`;
+        matches[id]={id,stage:'LB',round:1,index:i,
+          slotA:{type:'loser',match:w1[i*2]}, slotB:{type:'loser',match:w1[i*2+1]},
+          playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+        cur.push(id);
+      }
+    } else if(t%2===0){
+      const prev=lbRoundIds[t-2];
+      const wbRoundNum=t/2+1;
+      const wbRound=wbRounds[wbRoundNum-1];
+      for(let i=0;i<prev.length;i++){
+        const id=`LB-R${t}-M${i}`;
+        matches[id]={id,stage:'LB',round:t,index:i,
+          slotA:{type:'winner',match:prev[i]}, slotB:{type:'loser',match:wbRound[i]},
+          playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+        cur.push(id);
+      }
+    } else {
+      const prev=lbRoundIds[t-2];
+      for(let i=0;i<prev.length/2;i++){
+        const id=`LB-R${t}-M${i}`;
+        matches[id]={id,stage:'LB',round:t,index:i,
+          slotA:{type:'winner',match:prev[i*2]}, slotB:{type:'winner',match:prev[i*2+1]},
+          playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+        cur.push(id);
+      }
+    }
+    lbRoundIds.push(cur);
+  }
+  const wbFinal=wbRounds[wbRounds.length-1][0];
+  const lbFinal=lbRoundIds[lbRoundIds.length-1][0];
+  matches['GF1']={id:'GF1',stage:'GF',round:1,index:0,
+    slotA:{type:'winner',match:wbFinal}, slotB:{type:'winner',match:lbFinal},
+    playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'pending'};
+  matches['GF2']={id:'GF2',stage:'GF',round:2,index:0,
+    slotA:{type:'winner',match:wbFinal}, slotB:{type:'winner',match:lbFinal},
+    playerA:null,playerB:null,scoreA:null,scoreB:null,winner:null,loser:null,status:'hidden'};
+  resolveByesAndSlots(matches);
+  return {type:'double', size:n, k, matches, wbRounds, lbRounds:lbRoundIds, gf1:'GF1', gf2:'GF2'};
+}
+
+function resolveByesAndSlots(matches){
+  let changed=true, guard=0;
+  while(changed && guard<2000){
+    changed=false; guard++;
+    for(const id in matches){
+      const m=matches[id];
+      if(m.status==='hidden') continue;
+      if(m.playerA===null && m.slotA.type!=='seed'){
+        const v=resolveSlot(matches,m.slotA);
+        if(v!==undefined){ m.playerA=v; changed=true; }
+      }
+      if(m.playerB===null && m.slotB.type!=='seed'){
+        const v=resolveSlot(matches,m.slotB);
+        if(v!==undefined){ m.playerB=v; changed=true; }
+      }
+      if(m.status==='pending'){
+        const aOk = m.slotA.type==='seed' ? true : m.playerA!==null;
+        const bOk = m.slotB.type==='seed' ? true : m.playerB!==null;
+        if(aOk && bOk){
+          if(m.playerA===BYE && m.playerB===BYE){ m.status='bye'; m.winner=null; m.loser=null; changed=true; }
+          else if(m.playerA===BYE){ m.winner=m.playerB; m.loser=null; m.status='bye'; changed=true; }
+          else if(m.playerB===BYE){ m.winner=m.playerA; m.loser=null; m.status='bye'; changed=true; }
+          else { m.status='ready'; }
+        }
+      }
+    }
+  }
+}
+
+function resolveSlot(matches, slot){
+  const src=matches[slot.match];
+  if(!src) return undefined;
+  if(slot.type==='winner'){
+    if(src.status==='done'||src.status==='bye') return src.winner===null?BYE:src.winner;
+    return undefined;
+  }
+  if(slot.type==='loser'){
+    if(src.status==='bye') return BYE;
+    if(src.status==='done') return src.loser;
+    return undefined;
+  }
+  return undefined;
+}
+
+function reportScore(bracket, matchId, scoreA, scoreB){
+  const m=bracket.matches[matchId];
+  if(!m) throw new Error('No such match.');
+  if(m.status!=='ready') throw new Error('Match is not ready.');
+  if(scoreA===scoreB) throw new Error('Scores cannot tie.');
+  m.scoreA=scoreA; m.scoreB=scoreB;
+  if(scoreA>scoreB){ m.winner=m.playerA; m.loser=m.playerB; } else { m.winner=m.playerB; m.loser=m.playerA; }
+  m.status='done';
+  if(m.id==='GF1' && bracket.type==='double' && !bracket.trivial){
+    const lbFinalId=bracket.lbRounds[bracket.lbRounds.length-1][0];
+    const lbChamp=bracket.matches[lbFinalId].winner;
+    if(m.winner && lbChamp && m.winner.id===lbChamp.id){
+      const gf2=bracket.matches['GF2'];
+      gf2.status='pending'; gf2.playerA=m.playerA; gf2.playerB=m.playerB;
+      gf2.slotA={type:'fixed'}; gf2.slotB={type:'fixed'};
+    }
+  }
+  resolveByesAndSlots(bracket.matches);
+  for(const id in bracket.matches){
+    const mm=bracket.matches[id];
+    if(mm.status==='pending' && mm.playerA!==null && mm.playerB!==null && mm.playerA!==BYE && mm.playerB!==BYE){
+      mm.status='ready';
+    }
+  }
+  return bracket;
+}
+
+function isComplete(bracket){
+  if(bracket.type==='single'){
+    const f=bracket.matches[bracket.final];
+    return f.status==='done' || f.status==='bye';
+  }
+  if(bracket.type==='double'){
+    if(bracket.trivial){ const f=bracket.matches[bracket.gf1]; return f.status==='done'||f.status==='bye'; }
+    const gf1=bracket.matches['GF1'], gf2=bracket.matches['GF2'];
+    if(gf2.status==='done') return true;
+    if(gf1.status==='done' && gf2.status==='hidden') return true;
+    if(gf1.status==='bye') return true;
+    return false;
+  }
+  return false;
+}
+
+function champion(bracket){
+  if(!isComplete(bracket)) return null;
+  if(bracket.type==='single') return bracket.matches[bracket.final].winner;
+  if(bracket.trivial) return bracket.matches[bracket.gf1].winner;
+  const gf2=bracket.matches['GF2'];
+  if(gf2.status==='done') return gf2.winner;
+  return bracket.matches['GF1'].winner;
+}
+
+function generateRoundRobin(participants){
+  const players=participants.slice();
+  if(players.length%2===1) players.push(null);
+  const n=players.length;
+  const roundsCount=n-1;
+  const half=n/2;
+  let arr=players.slice();
+  const rounds=[]; const matches={};
+  for(let r=0;r<roundsCount;r++){
+    const roundMatches=[];
+    for(let i=0;i<half;i++){
+      const p1=arr[i], p2=arr[n-1-i];
+      if(p1 && p2){
+        const id=`RR-R${r+1}-M${i}`;
+        matches[id]={id,stage:'RR',round:r+1,index:i,
+          playerA:p1,playerB:p2,scoreA:null,scoreB:null,winner:null,loser:null,status:'ready'};
+        roundMatches.push(id);
+      }
+    }
+    rounds.push(roundMatches);
+    const fixed=arr[0]; const rest=arr.slice(1); rest.unshift(rest.pop()); arr=[fixed,...rest];
+  }
+  return {type:'roundrobin', matches, rounds, players:participants};
+}
+
+function reportScoreRR(rr, matchId, scoreA, scoreB){
+  const m=rr.matches[matchId];
+  if(!m) throw new Error('No such match.');
+  if(scoreA===scoreB) throw new Error('Scores cannot tie.');
+  m.scoreA=scoreA; m.scoreB=scoreB;
+  if(scoreA>scoreB){ m.winner=m.playerA; m.loser=m.playerB; } else { m.winner=m.playerB; m.loser=m.playerA; }
+  m.status='done';
+  return rr;
+}
+
+function standingsRR(rr){
+  const table={};
+  for(const p of rr.players) table[p.id]={player:p,w:0,l:0,pts:0,played:0};
+  for(const id in rr.matches){
+    const m=rr.matches[id];
+    if(m.status!=='done') continue;
+    table[m.winner.id].w++; table[m.winner.id].pts+=3; table[m.winner.id].played++;
+    table[m.loser.id].l++; table[m.loser.id].played++;
+  }
+  return Object.values(table).sort((a,b)=> b.pts-a.pts || b.w-a.w);
+}
+
+function isRRComplete(rr){
+  return Object.values(rr.matches).every(m=>m.status==='done');
+}
+function rrChampion(rr){
+  if(!isRRComplete(rr)) return null;
+  const s=standingsRR(rr);
+  return s.length? s[0].player : null;
+}
+
+/* =========================================================
+   SUPABASE CLIENT
+========================================================= */
+const SUPABASE_URL = 'https://awspuuqufnqdvmylqadg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_VdkL6-jsFme5zbw9lqdwpA_iDzRYBB8';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+// Supabase Auth needs an email. We keep the "callsign" UX by mapping it to a
+// fake, never-emailed address under a fixed domain. Users never see this.
+function emailForUsername(username){ return username.trim().toLowerCase()+'@players.tournamentifa.app'; }
+
+/* =========================================================
+   AUTH
+========================================================= */
+async function registerUser(username, password, displayName){
+  username=(username||'').trim().toLowerCase();
+  if(!/^[a-z0-9_]{3,20}$/.test(username)) throw new Error('Callsign must be 3-20 chars: letters, numbers, underscore.');
+  if(!password || password.length<4) throw new Error('Password needs at least 4 characters.');
+  const display=(displayName||username).trim();
+  const { data, error } = await sb.auth.signUp({
+    email: emailForUsername(username),
+    password,
+    options: { data: { username, display_name: display } }
+  });
+  if(error){
+    if(/already registered|already exists/i.test(error.message||'')) throw new Error('That callsign is already taken.');
+    throw new Error(error.message || 'Could not create account. Try again.');
+  }
+  if(!data.user) throw new Error('Could not create account. Try again.');
+  return { id: data.user.id, username, displayName: display };
+}
+async function loginUser(username, password){
+  username=(username||'').trim().toLowerCase();
+  const { data, error } = await sb.auth.signInWithPassword({ email: emailForUsername(username), password });
+  if(error) throw new Error('Wrong callsign or password.');
+  const u=data.user;
+  return { id:u.id, username: u.user_metadata?.username || username, displayName: u.user_metadata?.display_name || username };
+}
+async function loadSession(){
+  const { data } = await sb.auth.getSession();
+  const u = data?.session?.user;
+  if(!u) return null;
+  return { id:u.id, username: u.user_metadata?.username || '', displayName: u.user_metadata?.display_name || 'Fighter' };
+}
+async function clearSession(){ await sb.auth.signOut(); }
+
+/* =========================================================
+   TOURNAMENT DATA
+========================================================= */
+const FORMAT_LABEL={single:'Single Elimination', double:'Double Elimination', roundrobin:'Round Robin'};
+
+async function listTournaments(){
+  const { data, error } = await sb.from('tournaments').select('*').order('created_at', { ascending:false });
+  if(error){ console.error(error); return []; }
+  return data;
+}
+async function getTournament(id){
+  const { data, error } = await sb.from('tournaments').select('*').eq('id', id).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
+}
+async function saveTournament(t){
+  const { error } = await sb.from('tournaments').update({
+    name: t.name, format: t.format, max_players: t.max_players, best_of: t.best_of,
+    description: t.description, status: t.status,
+    participants: t.participants, bracket: t.bracket, roundrobin: t.roundrobin
+  }).eq('id', t.id);
+  if(error){ console.error(error); return false; }
+  return true;
+}
+async function deleteTournamentRow(id){
+  const { error } = await sb.from('tournaments').delete().eq('id', id);
+  return !error;
+}
+async function createTournament({name, format, maxPlayers, bestOf, description}, creator){
+  name=(name||'').trim();
+  if(!name) throw new Error('Give your tournament a name.');
+  if(!['single','double','roundrobin'].includes(format)) throw new Error('Pick a bracket format.');
+  maxPlayers=parseInt(maxPlayers,10);
+  if(!maxPlayers || maxPlayers<2 || maxPlayers>64) throw new Error('Max players must be between 2 and 64.');
+  const row = {
+    name, game:'Tekken 8', format, max_players:maxPlayers,
+    best_of: parseInt(bestOf,10)||3,
+    description:(description||'').trim(),
+    status:'registration',
+    created_by: creator.id, created_by_name: creator.displayName,
+    participants: [], bracket: null, roundrobin: null,
+  };
+  const { data, error } = await sb.from('tournaments').insert(row).select().single();
+  if(error) throw new Error(error.message || 'Could not create tournament.');
+  return data;
+}
+
+/* =========================================================
+   APP STATE
+========================================================= */
+const State = {
+  session: null,
+  view: {name:'home'},
+  cache: {},
+  loading: true,
+};
+
+function toast(msg, isErr){
+  const root=document.getElementById('toast-root');
+  const el=document.createElement('div');
+  el.className='toast'+(isErr?' err':'');
+  el.textContent=msg;
+  root.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s ease'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3200);
+}
+
+function nav(view){ State.view=view; render(); window.scrollTo({top:0, behavior:'instant'}); }
+
+function requireAuth(after){
+  if(State.session){ after(); return; }
+  openAuthModal('login');
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+function closeModal(){ const b=document.getElementById('modal-backdrop'); if(b) b.remove(); }
+
+function openModal(innerHtml, onMount){
+  closeModal();
+  const b=document.createElement('div');
+  b.id='modal-backdrop'; b.className='modal-backdrop';
+  b.innerHTML=`<div class="cut-card modal" style="position:relative;">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      ${innerHtml}
+    </div>`;
+  b.addEventListener('click', (e)=>{ if(e.target===b) closeModal(); });
+  document.body.appendChild(b);
+  if(onMount) onMount(b);
+}
+
+function openAuthModal(mode){
+  mode = mode || 'login';
+  const isLogin = mode==='login';
+  openModal(`
+    <h3>${isLogin?'Enter the Arena':'Create Your Fighter'}</h3>
+    <div id="auth-err"></div>
+    <div class="field"><label>Callsign</label><input class="input" id="auth-user" placeholder="e.g. kazuya_main" autocomplete="username"></div>
+    ${isLogin?'':'<div class="field"><label>Display Name</label><input class="input" id="auth-display" placeholder="How opponents will see you"></div>'}
+    <div class="field"><label>Password</label><input class="input" id="auth-pass" type="password" placeholder="••••••••" autocomplete="${isLogin?'current-password':'new-password'}"></div>
+    <button class="btn btn-primary btn-block" id="auth-submit">${isLogin?'Log In':'Register'}</button>
+    <p style="text-align:center; margin-top:14px; font-size:13px;">
+      ${isLogin?"New here?":"Already registered?"}
+      <a href="#" id="auth-switch" style="color:var(--ember-soft); text-decoration:underline;">${isLogin?'Create an account':'Log in'}</a>
+    </p>
+  `, (root)=>{
+    root.querySelector('#auth-switch').addEventListener('click',(e)=>{ e.preventDefault(); openAuthModal(isLogin?'register':'login'); });
+    root.querySelector('#auth-submit').addEventListener('click', async ()=>{
+      const username=root.querySelector('#auth-user').value;
+      const pass=root.querySelector('#auth-pass').value;
+      const errBox=root.querySelector('#auth-err');
+      errBox.innerHTML='';
+      try{
+        let user;
+        if(isLogin){ user=await loginUser(username,pass); }
+        else{
+          const display=root.querySelector('#auth-display').value;
+          user=await registerUser(username,pass,display);
+        }
+        State.session={id:user.id, username:user.username, displayName:user.displayName};
+        closeModal();
+        toast(isLogin?`Welcome back, ${user.displayName}.`:`Fighter registered. Welcome, ${user.displayName}.`);
+        render();
+      }catch(err){
+        errBox.innerHTML=`<div class="error-box">${escapeHtml(err.message)}</div>`;
+      }
+    });
+  });
+}
+
+/* =========================================================
+   RENDER: SHELL
+========================================================= */
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML = navHtml() + `<div class="main"><div class="wrap" id="main-wrap"></div></div>` + footerHtml();
+  bindNav();
+  const mount=document.getElementById('main-wrap');
+  const v=State.view;
+  if(v.name==='home') renderHome(mount);
+  else if(v.name==='create') renderCreate(mount);
+  else if(v.name==='tournament') renderTournamentDetail(mount, v.id);
+}
+
+function navHtml(){
+  const s=State.session;
+  return `
+  <div class="nav">
+    <div class="brand" onclick="nav({name:'home'})">
+      <div class="brand-mark">T8</div>
+      <div class="brand-text">TOURNAMENT<span>.IFA</span></div>
+    </div>
+    <div class="nav-right">
+      ${s ? `
+        <button class="btn btn-primary btn-sm" onclick="nav({name:'create'})">+ New Tournament</button>
+        <div class="nav-user"><b>${escapeHtml(s.displayName)}</b></div>
+        <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
+      ` : `
+        <button class="btn btn-ghost btn-sm" id="login-btn">Log In</button>
+        <button class="btn btn-primary btn-sm" id="register-btn">Register</button>
+      `}
+    </div>
+  </div>`;
+}
+
+function bindNav(){
+  const l=document.getElementById('login-btn'); if(l) l.onclick=()=>openAuthModal('login');
+  const r=document.getElementById('register-btn'); if(r) r.onclick=()=>openAuthModal('register');
+  const o=document.getElementById('logout-btn'); if(o) o.onclick=async ()=>{ await clearSession(); State.session=null; toast('Logged out.'); nav({name:'home'}); };
+}
+
+function footerHtml(){
+  return `<div class="footer">TOURNAMENT.IFA — an unofficial fan-built tournament hub for Tekken 8. Not affiliated with Bandai Namco.</div>`;
+}
+
+/* =========================================================
+   RENDER: HOME
+========================================================= */
+async function renderHome(mount){
+  mount.innerHTML = heroHtml() + `
+    <div class="section-title"><h2>Active &amp; Upcoming</h2><span class="count" id="t-count"></span></div>
+    <div id="t-list" class="grid"><div class="empty">Loading brackets…</div></div>
+  `;
+  const tournaments = await listTournaments();
+  const listEl=document.getElementById('t-list');
+  const countEl=document.getElementById('t-count');
+  if(!listEl) return;
+  if(!tournaments.length){
+    listEl.innerHTML = `<div class="empty" style="grid-column:1/-1;">
+      <h3>No tournaments yet</h3>
+      <p>Be the first to set the bracket. Every legend starts with round one.</p>
+    </div>`;
+    countEl.textContent='';
+    return;
+  }
+  countEl.textContent = `${tournaments.length} total`;
+  listEl.innerHTML = tournaments.map(tournamentCardHtml).join('');
+  listEl.querySelectorAll('[data-tid]').forEach(el=>{
+    el.addEventListener('click', ()=> nav({name:'tournament', id: el.getAttribute('data-tid')}));
+  });
+}
+
+function heroHtml(){
+  const dots = Array.from({length:14}, (_,i)=>{
+    const left = Math.round(Math.random()*100);
+    const delay = (Math.random()*7).toFixed(2);
+    const dur = (5+Math.random()*4).toFixed(2);
+    return `<span class="ember-dot" style="left:${left}%; animation-delay:${delay}s; animation-duration:${dur}s;"></span>`;
+  }).join('');
+  return `
+  <div class="hero">
+    <svg class="crack-svg" viewBox="0 0 400 600" preserveAspectRatio="none">
+      <defs><linearGradient id="crackGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ff6a2b"/><stop offset="100%" stop-color="#c8102e"/>
+      </linearGradient></defs>
+      <path d="M320 0 L260 90 L300 130 L200 240 L240 270 L150 400 L190 430 L120 600" stroke="url(#crackGrad)" stroke-width="3" fill="none" opacity="0.7"/>
+      <path d="M370 40 L330 150 L360 190 L280 320" stroke="url(#crackGrad)" stroke-width="1.5" fill="none" opacity="0.4"/>
+    </svg>
+    <div class="ember-field">${dots}</div>
+    <div class="hero-inner">
+      <div class="eyebrow">// Tekken 8 Community Tournaments</div>
+      <h1>RUN YOUR<br><span class="accent">BRACKET</span></h1>
+      <p class="lead">Create a tournament, open registration, and let TOURNAMENT.IFA generate the bracket — single elim, double elim, or round robin. Built for the King of Iron Fist grind.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="requireAuth(()=>nav({name:'create'}))">Start a Tournament</button>
+        <button class="btn btn-ghost" onclick="document.querySelector('.section-title').scrollIntoView({behavior:'smooth'})">Browse Brackets</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tournamentCardHtml(t){
+  const pillClass = t.status==='registration'?'pill-reg':(t.status==='in_progress'?'pill-live':'pill-done');
+  const pillText = t.status==='registration'?'Registration Open':(t.status==='in_progress'?'Live':'Completed');
+  return `
+  <div class="cut-card t-card" data-tid="${t.id}">
+    <div class="t-card-top">
+      <h3>${escapeHtml(t.name)}</h3>
+      <span class="pill ${pillClass}">${pillText}</span>
+    </div>
+    <div class="t-meta">
+      <span><b>${FORMAT_LABEL[t.format]}</b></span>
+      <span>${t.participants.length}/${t.max_players} fighters</span>
+      <span>Bo${t.best_of}</span>
+    </div>
+    <p style="font-size:13px;">${escapeHtml(t.description||'No description provided.').slice(0,90)}</p>
+    <div class="t-meta" style="margin-top:auto; padding-top:8px; border-top:1px solid var(--steel-soft);">
+      <span>Host: <b>${escapeHtml(t.created_by_name||'')}</b></span>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   RENDER: CREATE
+========================================================= */
+function renderCreate(mount){
+  if(!State.session){ openAuthModal('login'); nav({name:'home'}); return; }
+  mount.innerHTML = `
+    <div class="section-title" style="margin-top:44px;"><h2>New Tournament</h2></div>
+    <div class="cut-card" style="max-width:560px;">
+      <div id="create-err"></div>
+      <div class="field"><label>Tournament Name</label><input class="input" id="c-name" placeholder="e.g. Iron Fist Weekly #12"></div>
+      <div class="field"><label>Bracket Format</label>
+        <div class="radio-row" id="c-format">
+          <div class="radio-opt active" data-v="single"><b>Single Elim</b><span>One loss, you're out</span></div>
+          <div class="radio-opt" data-v="double"><b>Double Elim</b><span>Losers bracket + reset</span></div>
+          <div class="radio-opt" data-v="roundrobin"><b>Round Robin</b><span>Everyone plays everyone</span></div>
+        </div>
+      </div>
+      <div class="field"><label>Max Fighters</label><input class="input" id="c-max" type="number" min="2" max="64" value="8"></div>
+      <div class="field"><label>Match Format</label>
+        <select class="select" id="c-bestof">
+          <option value="1">Best of 1</option>
+          <option value="3" selected>Best of 3</option>
+          <option value="5">Best of 5</option>
+        </select>
+      </div>
+      <div class="field"><label>Description (optional)</label><textarea id="c-desc" placeholder="Rules, character restrictions, stream link, etc."></textarea></div>
+      <button class="btn btn-primary btn-block" id="c-submit">Create Tournament</button>
+    </div>
+  `;
+  let format='single';
+  mount.querySelectorAll('#c-format .radio-opt').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      mount.querySelectorAll('#c-format .radio-opt').forEach(x=>x.classList.remove('active'));
+      el.classList.add('active'); format=el.getAttribute('data-v');
+    });
+  });
+  document.getElementById('c-submit').addEventListener('click', async ()=>{
+    const errBox=document.getElementById('create-err'); errBox.innerHTML='';
+    try{
+      const t = await createTournament({
+        name: document.getElementById('c-name').value,
+        format,
+        maxPlayers: document.getElementById('c-max').value,
+        bestOf: document.getElementById('c-bestof').value,
+        description: document.getElementById('c-desc').value,
+      }, State.session);
+      toast('Tournament created.');
+      nav({name:'tournament', id:t.id});
+    }catch(err){
+      errBox.innerHTML=`<div class="error-box">${escapeHtml(err.message)}</div>`;
+    }
+  });
+}
+
+/* =========================================================
+   RENDER: TOURNAMENT DETAIL
+========================================================= */
+let detailTab = 'bracket';
+
+async function renderTournamentDetail(mount, id){
+  mount.innerHTML = `<div class="empty">Loading tournament…</div>`;
+  const t = await getTournament(id);
+  if(!t){ mount.innerHTML = `<div class="empty"><h3>Tournament not found</h3><p>It may have been deleted.</p><button class="btn btn-ghost" onclick="nav({name:'home'})">Back Home</button></div>`; return; }
+
+  const isOwner = State.session && State.session.id===t.created_by;
+  const isRegistration = t.status==='registration';
+  const alreadyIn = State.session && t.participants.some(p=>p.userId===State.session.id);
+  const pillClass = t.status==='registration'?'pill-reg':(t.status==='in_progress'?'pill-live':'pill-done');
+  const pillText = t.status==='registration'?'Registration Open':(t.status==='in_progress'?'Live':'Completed');
+
+  let championName = null;
+  if(t.status==='completed'){
+    if(t.format==='roundrobin' && t.roundrobin) championName = rrChampion(t.roundrobin)?.name;
+    else if(t.bracket) championName = champion(t.bracket)?.name;
+  }
+
+  mount.innerHTML = `
+    <div class="t-header">
+      <button class="btn btn-ghost btn-sm" onclick="nav({name:'home'})" style="margin-bottom:16px;">&larr; All Tournaments</button>
+      <div class="t-header-top">
+        <div>
+          <div class="eyebrow">${FORMAT_LABEL[t.format]} &middot; Bo${t.best_of}</div>
+          <h1>${escapeHtml(t.name)}</h1>
+        </div>
+        <span class="pill ${pillClass}">${pillText}</span>
+      </div>
+      ${t.description? `<p style="max-width:640px; margin-top:12px;">${escapeHtml(t.description)}</p>`:''}
+      <div class="t-stats">
+        <div class="t-stat"><b>${t.participants.length}/${t.max_players}</b><span>Fighters</span></div>
+        <div class="t-stat"><b>${escapeHtml(t.created_by_name||'')}</b><span>Host</span></div>
+        <div class="t-stat"><b>${new Date(t.created_at).toLocaleDateString()}</b><span>Created</span></div>
+      </div>
+    </div>
+
+    ${championName? `<div class="champion-banner"><div class="trophy">🏆</div><div><div class="eyebrow">Champion</div><h2>${escapeHtml(championName)}</h2></div></div>`:''}
+
+    <div class="tabs">
+      <div class="tab ${detailTab==='bracket'?'active':''}" data-tab="bracket">${t.format==='roundrobin'?'Standings':'Bracket'}</div>
+      <div class="tab ${detailTab==='players'?'active':''}" data-tab="players">Fighters</div>
+    </div>
+    <div id="tab-content"></div>
+  `;
+
+  mount.querySelectorAll('.tab').forEach(el=>{
+    el.addEventListener('click', ()=>{ detailTab=el.getAttribute('data-tab'); renderTournamentDetail(mount, id); });
+  });
+
+  const content = document.getElementById('tab-content');
+
+  if(detailTab==='players'){
+    content.innerHTML = renderPlayersTab(t, isOwner, isRegistration, alreadyIn);
+    bindPlayersTab(t, isOwner, isRegistration);
+  } else {
+    if(t.format==='roundrobin') content.innerHTML = renderRRTab(t, isOwner);
+    else content.innerHTML = renderBracketTab(t, isOwner);
+    bindScoreClicks(t, isOwner);
+  }
+}
+
+function renderPlayersTab(t, isOwner, isRegistration, alreadyIn){
+  const rows = t.participants.map((p,i)=>`
+    <div class="prow">
+      <span><span class="seed">#${i+1}</span><b>${escapeHtml(p.name)}</b></span>
+      ${isOwner && isRegistration? `<button class="btn btn-ghost btn-sm" data-remove="${p.id}">Remove</button>`:''}
+    </div>`).join('') || `<div class="empty">No fighters registered yet.</div>`;
+
+  return `
+    <div class="cut-card" style="margin-bottom:20px;">
+      <div class="plist">${rows}</div>
+    </div>
+    ${isRegistration ? `
+      <div class="cut-card" style="max-width:480px;">
+        <h3 style="font-size:15px; margin-bottom:14px; letter-spacing:.04em;">${isOwner? 'Manage Registration':'Join This Tournament'}</h3>
+        ${State.session ? (alreadyIn ? `
+            <p style="margin-bottom:10px;">You're registered for this tournament.</p>
+            <button class="btn btn-ghost btn-sm" id="leave-btn">Leave Tournament</button>
+          ` : `
+            <button class="btn btn-primary btn-sm" id="join-btn" ${t.participants.length>=t.max_players?'disabled':''}>
+              ${t.participants.length>=t.max_players? 'Tournament Full':'Join Tournament'}
+            </button>
+        `) : `<button class="btn btn-primary btn-sm" onclick="openAuthModal('login')">Log In to Join</button>`}
+        ${isOwner? `
+          <div style="margin-top:18px; border-top:1px solid var(--steel-soft); padding-top:16px;">
+            <label style="display:block; font-family:var(--font-cond); font-size:12.5px; text-transform:uppercase; color:var(--ash); margin-bottom:7px;">Add Guest Fighter</label>
+            <div style="display:flex; gap:8px;">
+              <input class="input" id="guest-name" placeholder="Fighter name">
+              <button class="btn btn-sm" id="add-guest-btn">Add</button>
+            </div>
+            <button class="btn btn-primary btn-block" id="start-btn" style="margin-top:16px;" ${t.participants.length<2?'disabled':''}>
+              Generate Bracket &amp; Start
+            </button>
+            ${t.participants.length<2? `<p class="hint">Need at least 2 fighters to start.</p>`:''}
+            <button class="btn btn-danger btn-block" id="delete-btn" style="margin-top:10px;">Delete Tournament</button>
+          </div>
+        `:''}
+      </div>
+    ` : ''}
+  `;
+}
+
+function bindPlayersTab(t, isOwner, isRegistration){
+  const joinBtn=document.getElementById('join-btn');
+  if(joinBtn) joinBtn.addEventListener('click', async ()=>{
+    t.participants.push({id:'u_'+State.session.id, name:State.session.displayName, username:State.session.username, userId:State.session.id});
+    await saveTournament(t); toast('Joined the tournament.'); renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+  });
+  const leaveBtn=document.getElementById('leave-btn');
+  if(leaveBtn) leaveBtn.addEventListener('click', async ()=>{
+    t.participants = t.participants.filter(p=>p.userId!==State.session.id);
+    await saveTournament(t); toast('Left the tournament.'); renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+  });
+  document.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const pid=btn.getAttribute('data-remove');
+      t.participants = t.participants.filter(p=>p.id!==pid);
+      await saveTournament(t); renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+    });
+  });
+  const addGuestBtn=document.getElementById('add-guest-btn');
+  if(addGuestBtn) addGuestBtn.addEventListener('click', async ()=>{
+    const input=document.getElementById('guest-name');
+    const name=input.value.trim();
+    if(!name){ toast('Enter a fighter name.', true); return; }
+    if(t.participants.length>=t.max_players){ toast('Tournament is full.', true); return; }
+    t.participants.push({id:uid('g'), name, username:null, userId:null});
+    await saveTournament(t); toast('Fighter added.'); renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+  });
+  const deleteBtn=document.getElementById('delete-btn');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    if(!confirm('Delete this tournament permanently? This cannot be undone.')) return;
+    const ok=await deleteTournamentRow(t.id);
+    if(ok){ toast('Tournament deleted.'); nav({name:'home'}); }
+    else toast('Could not delete tournament.', true);
+  });
+  const startBtn=document.getElementById('start-btn');
+  if(startBtn) startBtn.addEventListener('click', async ()=>{
+    if(t.participants.length<2){ toast('Need at least 2 fighters.', true); return; }
+    if(t.format==='roundrobin'){
+      t.roundrobin = generateRoundRobin(t.participants);
+    } else if(t.format==='double'){
+      t.bracket = generateDoubleElim(t.participants);
+    } else {
+      t.bracket = generateSingleElim(t.participants);
+    }
+    t.status='in_progress';
+    await saveTournament(t);
+    toast('Bracket generated. Fight!');
+    detailTab='bracket';
+    renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+  });
+}
+
+function roundLabel(stage, r, total){
+  if(stage==='GF') return r===1? 'Grand Final':'Bracket Reset';
+  if(stage==='WB'){
+    if(r===total) return 'WB Final';
+    if(r===total-1) return 'WB Semis';
+    return 'WB Round '+r;
+  }
+  if(stage==='LB'){
+    if(r===total) return 'LB Final';
+    return 'LB Round '+r;
+  }
+  return 'Round '+r;
+}
+
+function matchCardHtml(m, canEdit){
+  if(m.status==='hidden') return '';
+  const pName = (p)=> p===BYE ? '<span style="color:var(--ash-dim); font-style:italic;">BYE</span>' : (p? escapeHtml(p.name) : '<span style="color:var(--ash-dim);">TBD</span>');
+  if(m.status==='bye'){
+    return `<div class="match-card done">
+      <div class="mp winner">${pName(m.winner ? m.winner : (m.playerA===BYE? m.playerB : m.playerA))} <span class="score">W/O</span></div>
+      <div class="mp-divider"></div>
+      <div class="bye-tag">bye</div>
+    </div>`;
+  }
+  const clickable = canEdit && m.status==='ready';
+  const cls = m.status==='ready'? 'ready' : (m.status==='done'? 'done':'');
+  const aWin = m.status==='done' && m.winner && m.playerA && m.winner.id===m.playerA.id;
+  const bWin = m.status==='done' && m.winner && m.playerB && m.winner.id===m.playerB.id;
+  return `<div class="match-card ${cls}" ${clickable? `data-match="${m.id}"`:''}>
+    <div class="mp ${aWin?'winner':(m.status==='done'?'loser':'')}"><span>${pName(m.playerA)}</span><span class="score">${m.scoreA===null?'':m.scoreA}</span></div>
+    <div class="mp-divider"></div>
+    <div class="mp ${bWin?'winner':(m.status==='done'?'loser':'')}"><span>${pName(m.playerB)}</span><span class="score">${m.scoreB===null?'':m.scoreB}</span></div>
+  </div>`;
+}
+
+function renderBracketTab(t, isOwner){
+  const b=t.bracket;
+  if(!b) return `<div class="empty">Bracket not generated yet.</div>`;
+  const wb = b.wbRounds.map((roundIds, idx)=>{
+    const r=idx+1;
+    return `<div class="round-col"><div class="round-label">${roundLabel('WB', r, b.wbRounds.length)}</div>
+      ${roundIds.map(id=>matchCardHtml(b.matches[id], isOwner)).join('')}
+    </div>`;
+  }).join('');
+
+  let lbHtml='', gfHtml='';
+  if(b.type==='double' && !b.trivial){
+    const lb = b.lbRounds.map((roundIds, idx)=>{
+      const r=idx+1;
+      return `<div class="round-col"><div class="round-label">${roundLabel('LB', r, b.lbRounds.length)}</div>
+        ${roundIds.map(id=>matchCardHtml(b.matches[id], isOwner)).join('')}
+      </div>`;
+    }).join('');
+    lbHtml = `<div class="bracket-block"><h3>Losers Bracket</h3><div class="bracket-row">${lb}</div></div>`;
+    const gf1 = b.matches['GF1'], gf2=b.matches['GF2'];
+    gfHtml = `<div class="bracket-block"><h3>Grand Final</h3><div class="bracket-row">
+      <div class="round-col"><div class="round-label">Grand Final</div>${matchCardHtml(gf1, isOwner)}</div>
+      ${gf2.status!=='hidden'? `<div class="round-col"><div class="round-label">Bracket Reset</div>${matchCardHtml(gf2, isOwner)}</div>`:''}
+    </div></div>`;
+  } else if(b.type==='double' && b.trivial){
+    gfHtml = `<div class="bracket-block"><h3>Final</h3><div class="bracket-row"><div class="round-col">${matchCardHtml(b.matches[b.gf1], isOwner)}</div></div></div>`;
+  }
+
+  return `
+    <div class="bracket-block"><h3>Winners Bracket</h3><div class="bracket-row">${wb}</div></div>
+    ${lbHtml}
+    ${gfHtml}
+    ${isOwner? '<p class="hint">Click a highlighted match to report the score.</p>':''}
+  `;
+}
+
+function renderRRTab(t, isOwner){
+  const rr=t.roundrobin;
+  if(!rr) return `<div class="empty">Standings not available yet.</div>`;
+  const standings = standingsRR(rr);
+  const table = `
+    <table class="rr-table">
+      <thead><tr><th>#</th><th>Fighter</th><th>W</th><th>L</th><th>Pts</th></tr></thead>
+      <tbody>
+        ${standings.map((s,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(s.player.name)}</td><td>${s.w}</td><td>${s.l}</td><td>${s.pts}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+  const schedule = rr.rounds.map((roundIds, idx)=>`
+    <div class="rr-sched-round">
+      <h4>Round ${idx+1}</h4>
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+        ${roundIds.map(id=>matchCardHtml(rr.matches[id], isOwner)).join('')}
+      </div>
+    </div>`).join('');
+  return `
+    <div class="cut-card" style="margin-bottom:26px;"><h3 style="font-size:15px; margin-bottom:14px;">Standings</h3>${table}</div>
+    <div class="bracket-block"><h3>Schedule</h3>${schedule}</div>
+    ${isOwner? '<p class="hint">Click any match to report the score.</p>':''}
+  `;
+}
+
+function bindScoreClicks(t, isOwner){
+  if(!isOwner) return;
+  document.querySelectorAll('[data-match]').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const mid=card.getAttribute('data-match');
+      const isRR = t.format==='roundrobin';
+      const m = isRR ? t.roundrobin.matches[mid] : t.bracket.matches[mid];
+      openScoreModal(t, m, isRR);
+    });
+  });
+}
+
+function openScoreModal(t, m, isRR){
+  openModal(`
+    <h3>Report Score</h3>
+    <div id="score-err"></div>
+    <div class="field"><label>${escapeHtml(m.playerA.name)}</label><input class="input" id="score-a" type="number" min="0" value="0"></div>
+    <div class="field"><label>${escapeHtml(m.playerB.name)}</label><input class="input" id="score-b" type="number" min="0" value="0"></div>
+    <button class="btn btn-primary btn-block" id="score-submit">Confirm Result</button>
+  `, (root)=>{
+    root.querySelector('#score-submit').addEventListener('click', async ()=>{
+      const errBox=root.querySelector('#score-err');
+      const a=parseInt(root.querySelector('#score-a').value,10);
+      const b=parseInt(root.querySelector('#score-b').value,10);
+      try{
+        if(isRR) reportScoreRR(t.roundrobin, m.id, a, b);
+        else reportScore(t.bracket, m.id, a, b);
+
+        const complete = isRR ? isRRComplete(t.roundrobin) : isComplete(t.bracket);
+        if(complete) t.status='completed';
+        await saveTournament(t);
+        closeModal();
+        toast('Result recorded.');
+        renderTournamentDetail(document.getElementById('main-wrap'), t.id);
+      }catch(err){
+        errBox.innerHTML=`<div class="error-box">${escapeHtml(err.message)}</div>`;
+      }
+    });
+  });
+}
+
+/* =========================================================
+   CONNECTION AVAILABILITY CHECK
+========================================================= */
+function renderConnectionError(){
+  const app=document.getElementById('app');
+  app.innerHTML = `
+  <div class="nav">
+    <div class="brand"><div class="brand-mark">T8</div><div class="brand-text">TOURNAMENT<span>.IFA</span></div></div>
+  </div>
+  <div class="main"><div class="wrap">
+    <div class="cut-card" style="max-width:560px; margin:70px auto; text-align:center; padding:38px 30px;">
+      <div style="font-size:38px; margin-bottom:10px;">⚠️</div>
+      <h2 style="font-size:22px; margin-bottom:14px;">Can't reach the database</h2>
+      <p style="margin-bottom:14px;">
+        This page couldn't connect to its database, so accounts and tournaments can't load right now.
+        This is usually temporary — try refreshing the page in a minute.
+      </p>
+      <p style="margin-bottom:20px;">If this keeps happening, the site owner needs to check its database connection settings.</p>
+      <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+    </div>
+  </div></div>
+  <div class="footer">TOURNAMENT.IFA — an unofficial fan-built tournament hub for Tekken 8. Not affiliated with Bandai Namco.</div>
+  `;
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+async function init(){
+  try{
+    State.session = await loadSession();
+    render();
+  }catch(e){
+    console.error('init failed', e);
+    renderConnectionError();
+  }
+}
+init();
+</script>
+</body>
+</html>
